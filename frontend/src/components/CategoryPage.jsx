@@ -18,30 +18,39 @@ const CategoryPage = () => {
       // Always use the filter endpoint for consistency
       const params = new URLSearchParams();
 
-      // Add category filter
-      params.append('category', name);
+      // Use category name from route param, not from filters
+      if (name) {
+        params.append('category', name);
+      }
 
-      // Add other filters
+      // Add other filters (but NOT category filter from filters object)
       Object.entries(filters).forEach(([key, value]) => {
-        if (value && value !== 'all' && value !== 'default') {
+        if (key !== 'category' && value && value !== 'all' && value !== 'default') {
           params.append(key, value);
         }
       });
 
       const url = `${BASE_API}/cakes/filter?${params.toString()}`;
+      console.log('Fetching:', url);
       const res = await axios.get(url);
       setCakes(res.data);
     } catch (err) {
-      console.log(err);
+      console.error('Error fetching cakes:', err);
       setCakes([]);
     }
   };
 
   const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: value
-    }));
+    setFilters(prev => {
+      const newFilters = { ...prev };
+      if (filterType === 'category') {
+        // Never store category filter - category is determined by URL
+        delete newFilters.category;
+      } else {
+        newFilters[filterType] = value;
+      }
+      return newFilters;
+    });
   };
 
   return (

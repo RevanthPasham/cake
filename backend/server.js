@@ -12,10 +12,18 @@ app.use(express.json());
 
 // CONNECT TO MONGO
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/cake-shop';
-mongoose
-  .connect(mongoUrl)
+console.log('Attempting to connect to MongoDB...');
+console.log('MongoDB URL:', mongoUrl);
+
+mongoose.connect(mongoUrl, {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+})
   .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log(err));
+  .catch((err) => {
+    console.error("MongoDB Connection Error:", err.message);
+    console.error("Full error:", err);
+  });
 
 // GET categories
 app.get("/categories", async (req, res) => {
@@ -79,10 +87,20 @@ app.get("/filter-options", async (req, res) => {
 // GET filtered cakes
 app.get("/cakes/filter", async (req, res) => {
   try {
-    const { category, flavour, weight, veg, sort } = req.query;
+    let { category, flavour, weight, veg, sort } = req.query;
+
+    // Ensure values are strings (handle case where express gives arrays)
+    if (Array.isArray(category)) category = category[0];
+    if (Array.isArray(flavour)) flavour = flavour[0];
+    if (Array.isArray(weight)) weight = weight[0];
+    if (Array.isArray(veg)) veg = veg[0];
+    if (Array.isArray(sort)) sort = sort[0];
 
     // helper to escape regex chars
-    const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escapeRegex = (s) => {
+      if (typeof s !== 'string') return '';
+      return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    };
 
     const query = {};
 
@@ -92,9 +110,9 @@ app.get("/cakes/filter", async (req, res) => {
     }
 
     if (category && category !== 'all') {
-      // categories is an array field - match any element case-insensitively
+      // categories is an array field - use $elemMatch with $regex
       const rx = new RegExp(`^${escapeRegex(category)}$`, 'i');
-      query.categories = { $in: [rx] };
+      query.categories = { $elemMatch: { $regex: rx } };
     }
 
     if (flavour && flavour !== 'all') {
@@ -103,8 +121,9 @@ app.get("/cakes/filter", async (req, res) => {
     }
 
     if (weight && weight !== 'all') {
+      // weightOptions is an array field - use $elemMatch with $regex
       const rx = new RegExp(`^${escapeRegex(weight)}$`, 'i');
-      query.weightOptions = { $in: [rx] };
+      query.weightOptions = { $elemMatch: { $regex: rx } };
     }
 
     console.log('Filter request received:', req.query);
@@ -119,9 +138,11 @@ app.get("/cakes/filter", async (req, res) => {
       cakes.sort((a, b) => (b.prices?.[0] || 0) - (a.prices?.[0] || 0));
     }
 
+    console.log("Found cakes:", cakes.length);
     res.json(cakes);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch filtered cakes" });
+    console.error("Filter error:", err.message);
+    res.status(500).json({ error: "Failed to fetch filtered cakes", details: err.message });
   }
 });
 
