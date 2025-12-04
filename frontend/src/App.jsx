@@ -8,7 +8,7 @@ import CategoryPage from "./components/CategoryPage";
 import { useState } from "react";
 
 function App() {
-  const [selectedCategory, setSelectedCategory] = useState("Chocolate");
+  const [selectedCategory, setSelectedCategory] = useState(null); // Start with null to show all cakes
 
   return (
     <Router>
