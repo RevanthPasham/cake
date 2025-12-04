@@ -80,21 +80,35 @@ app.get("/filter-options", async (req, res) => {
 app.get("/cakes/filter", async (req, res) => {
   try {
     const { category, flavour, weight, veg, sort } = req.query;
-    let query = {};
 
-    // Build filter query
-    if (category && category !== 'all') {
-      query.categories = category;
-    }
-    if (flavour && flavour !== 'all') {
-      query.flavour = flavour;
-    }
-    if (weight && weight !== 'all') {
-      query.weightOptions = weight;
-    }
+    // helper to escape regex chars
+    const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const query = {};
+
+    // Build filter query with case-insensitive matching
     if (veg && veg !== 'all') {
       query.veg = veg === 'veg';
     }
+
+    if (category && category !== 'all') {
+      // categories is an array field - match any element case-insensitively
+      const rx = new RegExp(`^${escapeRegex(category)}$`, 'i');
+      query.categories = { $in: [rx] };
+    }
+
+    if (flavour && flavour !== 'all') {
+      const rx = new RegExp(`^${escapeRegex(flavour)}$`, 'i');
+      query.flavour = { $regex: rx };
+    }
+
+    if (weight && weight !== 'all') {
+      const rx = new RegExp(`^${escapeRegex(weight)}$`, 'i');
+      query.weightOptions = { $in: [rx] };
+    }
+
+    console.log('Filter request received:', req.query);
+    console.log('Mongo query built:', JSON.stringify(query));
 
     let cakes = await Cake.find(query);
 
