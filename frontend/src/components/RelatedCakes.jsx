@@ -9,7 +9,7 @@ const RelatedCakes = ({ cakeId, categories }) => {
 
   useEffect(() => {
     axios
-      .get(`${BASE_API}/all-related-cakes/${cakeId}`)
+      .get(`${BASE_API}/related-cakes/${cakeId}`)
       .then((res) => setRelated(res.data));
   }, [cakeId]);
 
