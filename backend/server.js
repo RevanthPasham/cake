@@ -11,12 +11,29 @@ app.use(cors());
 app.use(express.json());
 
 // CONNECT DATABASE
-const mongoUrl = process.env.MONGO_URL || "mongodb://localhost:27017/cake-shop";
+let mongoUrl = process.env.MONGO_URL;
+if (!mongoUrl) {
+  console.warn("MONGO_URL not in env, trying hardcoded Atlas URL");
+  mongoUrl = "mongodb+srv://pashamrevanth541_db_user:qbI0qLlgAjHtmTYv@cluster0.hrrdcoe.mongodb.net/cakes_db";
+}
 
-mongoose
-  .connect(mongoUrl)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.error("MongoDB Error:", err.message));
+console.log("Attempting connection with URL:", mongoUrl.substring(0, 50) + "...");
+
+async function startServer() {
+  try {
+    await mongoose.connect(mongoUrl, {
+      serverSelectionTimeoutMS: 10000,
+    });
+    console.log("MongoDB Connected");
+    
+    // Start server only after DB connection
+    app.listen(5000, () => console.log("Server running on port 5000"));
+  } catch (err) {
+    console.error("MongoDB Connection Error:", err.message);
+    console.error("URL was:", mongoUrl.substring(0, 50) + "...");
+    process.exit(1);
+  }
+}
 
 
 // =====================
@@ -231,31 +248,18 @@ app.get("/cake/:id", async (req, res) => {
 // =====================
 app.get("/related-cakes/:id", async (req, res) => {
   try {
-    if (mongoConnected) {
-      const cake = await Cake.findById(req.params.id);
-      if (!cake) return res.status(404).json({ error: "Cake not found" });
+    const cake = await Cake.findById(req.params.id);
+    if (!cake) return res.status(404).json({ error: "Cake not found" });
 
-      const related = await Cake.find({
-        _id: { $ne: cake._id },
-        categories: { $in: cake.categories }
-      }).limit(10);
+    const related = await Cake.find({
+      _id: { $ne: cake._id },
+      categories: { $in: cake.categories }
+    }).limit(10);
 
-      res.json(related);
-    } else {
-      // Find the cake in mock data
-      const cake = mockCakes.find(c => c._id === req.params.id);
-      if (!cake) return res.status(404).json({ error: "Cake not found" });
+    res.json(related);
 
-      // Find related cakes by category
-      const related = mockCakes.filter(c =>
-        c._id !== cake._id &&
-        c.categories.some(cat => cake.categories.includes(cat))
-      ).slice(0, 10);
-
-      res.json(related);
-    }
-
-  } catch {
+  } catch (err) {
+    console.error("Related cakes error:", err);
     res.json([]);
   }
 });
@@ -264,4 +268,4 @@ app.get("/related-cakes/:id", async (req, res) => {
 // =====================
 // START SERVER
 // =====================
-app.listen(5000, () => console.log("Server running on port 5000"));
+startServer();
