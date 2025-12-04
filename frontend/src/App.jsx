@@ -4,37 +4,39 @@ import Navbar from "./components/Navbar";
 import Slider from "./components/Slider";
 import CakeCard from "./components/CakeCard";
 import CakeDetail from "./components/CakeDetail";
+import CategoryPage from "./components/CategoryPage";
 import { useState } from "react";
 
 function App() {
-  const [selectedCategory, setSelectedCategory] = useState("Chocolate"); 
+  const [selectedCategory, setSelectedCategory] = useState("Chocolate");
 
   return (
     <Router>
-      <Routes>
+      <Navbar />
 
-        {/* ------------ HOME PAGE ------------ */}
+      <Routes>
+        {/* Home Page */}
         <Route
           path="/"
           element={
             <div className="p-3 bg-gray-50 min-h-screen">
-              <Navbar />
 
-              {/* SLIDER - passes category array */}
-              <Slider onSelectCategory={(catArray) => {
-                // Take first category OR send whole array
-                setSelectedCategory(catArray[0]);
-              }} />
+              <Slider
+                onSelectCategory={(catArray) => {
+                  console.log("Selected category:", catArray);
+                  setSelectedCategory(catArray[0]); // pick first string
+                }}
+              />
 
-              {/* SHOW CAKES BASED ON SELECTED CATEGORY */}
               <CakeCard category={selectedCategory} />
             </div>
           }
         />
 
-        {/* ------------ CAKE DETAILS PAGE ------------ */}
-        <Route path="/cake/:id" element={<CakeDetail />} />
+                 <Route path="/category/:name" element={<CategoryPage />} />
 
+        {/* Cake Detail */}
+        <Route path="/cake/:id" element={<CakeDetail />} />
       </Routes>
     </Router>
   );

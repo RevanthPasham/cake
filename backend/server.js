@@ -79,6 +79,23 @@ app.get("/related-cakes/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch related cakes" });
   }
 });
+// GET cakes by category name (matching categories array)
+app.get('/cakes/category/:categoryName', async (req, res) => {
+  try {
+    const { categoryName } = req.params;
+    // First, find the category document to get its categories array
+    const categoryDoc = await Category.findOne({ name: categoryName });
+    if (!categoryDoc) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    // Find cakes where the categories array intersects with the category's categories array
+    const cakes = await Cake.find({ categories: { $in: categoryDoc.categories } });
+    res.json(cakes);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch cakes' });
+  }
+});
+
 
 // ALL RELATED CAKES (full list)
 app.get("/all-related-cakes/:id", async (req, res) => {

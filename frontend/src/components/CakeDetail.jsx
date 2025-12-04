@@ -1,3 +1,4 @@
+// CakeDetail.jsx
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -13,16 +14,30 @@ const CakeDetail = () => {
   const [imgIndex, setImgIndex] = useState(0);
 
   useEffect(() => {
-    axios.get(`${BASE_API}/cake/${id}`).then((res) => {
-      setCake(res.data);
-    });
+    const loadCake = async () => {
+      try {
+        let res = await axios.get(`${BASE_API}/cake/${id}`).catch(() => null);
+        if (!res) res = await axios.get(`${BASE_API}/cakes/${id}`);
+
+        const data = res.data.cake ? res.data.cake : res.data;
+
+        setCake(data);
+      } catch (error) {
+        console.error("Error loading cake:", error);
+      }
+    };
+
+    loadCake();
   }, [id]);
 
   if (!cake)
-    return <p className="text-center mt-10">Loading...</p>;
+    return <p className="text-center mt-10">Loading cake details...</p>;
 
   const orderNow = () => {
-    const msg = `Cake: ${cake.name}\nWeight: ${cake.weightOptions[selectedWeight]}\nPrice: ₹${cake.prices[selectedWeight]}`;
+    const msg = `Cake: ${cake.name}
+Weight: ${cake.weightOptions[selectedWeight]}
+Price: ₹${cake.prices[selectedWeight]}`;
+
     window.open(
       `https://wa.me/9100894542?text=${encodeURIComponent(msg)}`,
       "_blank"
@@ -31,6 +46,8 @@ const CakeDetail = () => {
 
   return (
     <div className="pb-20">
+
+      {/* Back */}
       <button
         onClick={() => navigate(-1)}
         className="absolute top-4 left-4 bg-white p-2 rounded-full shadow"
@@ -38,7 +55,7 @@ const CakeDetail = () => {
         ←
       </button>
 
-      {/* SLIDER */}
+      {/* Image Slider */}
       <div className="relative h-64 overflow-hidden">
         <div
           className="flex transition-transform duration-500"
@@ -49,7 +66,6 @@ const CakeDetail = () => {
           ))}
         </div>
 
-        {/* Arrows */}
         <button
           onClick={() =>
             setImgIndex(imgIndex === 0 ? cake.images.length - 1 : imgIndex - 1)
@@ -61,7 +77,9 @@ const CakeDetail = () => {
 
         <button
           onClick={() =>
-            setImgIndex(imgIndex === cake.images.length - 1 ? 0 : imgIndex + 1)
+            setImgIndex(
+              imgIndex === cake.images.length - 1 ? 0 : imgIndex + 1
+            )
           }
           className="absolute top-1/2 right-3 p-2 bg-white rounded-full shadow"
         >
@@ -91,7 +109,6 @@ const CakeDetail = () => {
           ))}
         </div>
 
-        {/* Price */}
         <p className="text-pink-600 text-2xl font-bold">
           ₹{cake.prices[selectedWeight]}
         </p>
