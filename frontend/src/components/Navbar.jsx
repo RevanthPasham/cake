@@ -1,85 +1,111 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { BASE_API } from "../config";
-import { useNavigate } from "react-router-dom";
 
-const Navbar = () => {
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
+export const Navbar = () => {
   const navigate = useNavigate();
 
-  // Fetch suggestions
-  useEffect(() => {
-    if (!query.trim()) {
-      setSuggestions([]);
-      return;
-    }
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showBox, setShowBox] = useState(false);
 
-    const fetchSuggestions = async () => {
-      try {
-        const res = await axios.get(`${BASE_API}/search-suggestions?q=${query}`);
-        setSuggestions(res.data);
-      } catch (err) {
-        console.error("Suggestion error", err);
+  // Fetch suggestion list
+  const fetchSuggestions = async (text) => {
+    try {
+      if (!text.trim()) {
+        setSuggestions([]);
+        return;
       }
-    };
 
-    const delay = setTimeout(fetchSuggestions, 300);
-    return () => clearTimeout(delay);
-  }, [query]);
+      const res = await axios.get(`${BASE_API}/search-suggestions?q=${text}`);
+      setSuggestions(res.data);
+    } catch (err) {
+      console.log("Suggestion error", err);
+    }
+  };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-    navigate(`/search?q=${query}`);
+  // Typing handler
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setQuery(value);
+
+    if (value.trim().length > 0) {
+      setShowBox(true);
+      fetchSuggestions(value);
+    } else {
+      setShowBox(false);
+      setSuggestions([]);
+    }
+  };
+
+  // Press Enter → Search Immediately
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      navigate(`/search?q=${query}`);
+      setShowBox(false);
+      setSuggestions([]);
+    }
+  };
+
+  // Click suggestion → Immediate Search
+  const handleSuggestionClick = (value) => {
+    setQuery(value);
+    navigate(`/search?q=${value}`);
+
+    // hide dropdown
+    setShowBox(false);
     setSuggestions([]);
   };
 
-  const applySuggestion = (text) => {
-    setQuery(text);
-    navigate(`/search?q=${text}`);
-    setSuggestions([]);
-  };
+  // Hide suggestions when clicking outside
+  useEffect(() => {
+    const closeSuggestions = () => setShowBox(false);
+    window.addEventListener("click", closeSuggestions);
+    return () => window.removeEventListener("click", closeSuggestions);
+  }, []);
 
   return (
-    <div className="relative flex items-center justify-between p-3 shadow bg-white sticky top-0 z-10">
+    <div className="flex items-center justify-between p-3 shadow bg-white sticky top-0 z-20 relative">
 
-      <h1
-        onClick={() => navigate("/")}
-        className="text-xl font-bold text-pink-600 cursor-pointer"
-      >
-        Sweet Bites
-      </h1>
+      <h1 className="text-xl font-bold text-pink-600">Sweet Bites</h1>
 
-      <form onSubmit={handleSubmit} className="relative">
+      {/* SEARCH BAR */}
+      <div className="relative w-44 md:w-60">
         <input
           type="text"
-          placeholder="Search cakes..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="border rounded-full px-4 py-1 w-40 md:w-60 text-sm"
+          onChange={handleChange}
+          onKeyDown={handleKeyPress}
+          placeholder="Search cakes..."
+          className="border rounded-full px-4 py-1 w-full text-sm outline-none focus:ring-2 focus:ring-pink-300"
+          onClick={(e) => e.stopPropagation()}
         />
 
-        {/* Suggestions Dropdown */}
-        {suggestions.length > 0 && (
-          <div className="absolute bg-white w-full mt-1 rounded shadow-md border max-h-48 overflow-y-auto z-20">
+        {/* SUGGESTION LIST */}
+        {showBox && suggestions.length > 0 && (
+          <div
+            className="absolute top-10 left-0 w-full bg-white shadow-xl rounded-xl max-h-60 overflow-y-auto p-2 z-30"
+            onClick={(e) => e.stopPropagation()}
+          >
             {suggestions.map((item, index) => (
-              <div
+              <p
                 key={index}
-                onClick={() => applySuggestion(item)}
-                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => handleSuggestionClick(item)}
+                className="p-2 rounded-lg hover:bg-pink-100 cursor-pointer text-sm"
               >
                 {item}
-              </div>
+              </p>
             ))}
           </div>
         )}
-      </form>
+      </div>
 
       <div className="flex gap-3 text-xl">
         <span>❤️</span>
         <span>☰</span>
       </div>
+
     </div>
   );
 };
