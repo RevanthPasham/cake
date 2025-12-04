@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 // CONNECT TO MONGO
-const mongoUrl = process.env.MONGO_URL;
+const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/cake-shop';
 mongoose
   .connect(mongoUrl)
   .then(() => console.log("MongoDB Connected"))
@@ -24,6 +24,90 @@ app.get("/categories", async (req, res) => {
     res.json(cat);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch categories" });
+  }
+});
+
+// GET filter options
+app.get("/filter-options", async (req, res) => {
+  console.log("Filter options endpoint called");
+  try {
+    // Try to get data from database, fallback to mock data if MongoDB not connected
+    let categories = [], flavours = [], weights = [], vegOptions = [], priceRange = { min: 0, max: 0 };
+
+    try {
+      const cakes = await Cake.find();
+      console.log("Found", cakes.length, "cakes in database");
+
+      // Extract unique values
+      categories = [...new Set(cakes.flatMap(cake => cake.categories || []))];
+      flavours = [...new Set(cakes.map(cake => cake.flavour).filter(Boolean))];
+      weights = [...new Set(cakes.flatMap(cake => cake.weightOptions || []))];
+      vegOptions = [...new Set(cakes.map(cake => cake.veg ? 'veg' : 'nonveg'))];
+
+      // Get price range
+      const allPrices = cakes.flatMap(cake => cake.prices || []);
+      priceRange = {
+        min: allPrices.length > 0 ? Math.min(...allPrices) : 0,
+        max: allPrices.length > 0 ? Math.max(...allPrices) : 0
+      };
+    } catch (dbError) {
+      console.log("Database not available, using mock data");
+      // Mock data for when MongoDB is not running
+      categories = ['Chocolate', 'Wedding', 'Birthday'];
+      flavours = ['Dark Chocolate', 'Vanilla'];
+      weights = ['500g', '1kg'];
+      vegOptions = ['veg'];
+      priceRange = { min: 400, max: 1200 };
+    }
+
+    const response = {
+      categories,
+      flavours,
+      weights,
+      vegOptions,
+      priceRange
+    };
+
+    console.log("Sending filter options:", response);
+    res.json(response);
+  } catch (err) {
+    console.error("Error in filter-options:", err);
+    res.status(500).json({ error: "Failed to fetch filter options" });
+  }
+});
+
+// GET filtered cakes
+app.get("/cakes/filter", async (req, res) => {
+  try {
+    const { category, flavour, weight, veg, sort } = req.query;
+    let query = {};
+
+    // Build filter query
+    if (category && category !== 'all') {
+      query.categories = category;
+    }
+    if (flavour && flavour !== 'all') {
+      query.flavour = flavour;
+    }
+    if (weight && weight !== 'all') {
+      query.weightOptions = weight;
+    }
+    if (veg && veg !== 'all') {
+      query.veg = veg === 'veg';
+    }
+
+    let cakes = await Cake.find(query);
+
+    // Apply sorting
+    if (sort === 'low') {
+      cakes.sort((a, b) => (a.prices?.[0] || 0) - (b.prices?.[0] || 0));
+    } else if (sort === 'high') {
+      cakes.sort((a, b) => (b.prices?.[0] || 0) - (a.prices?.[0] || 0));
+    }
+
+    res.json(cakes);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch filtered cakes" });
   }
 });
 

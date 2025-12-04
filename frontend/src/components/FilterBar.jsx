@@ -9,11 +9,14 @@ const FilterBar = ({ filters, onFilterChange }) => {
     weights: [],
     priceRange: { min: 0, max: 0 }
   });
+    const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("Fetching filter options from:", `${BASE_API}/filter-options`);
     axios
       .get(`${BASE_API}/filter-options`)
       .then((res) => {
+        console.log("Filter options response:", res.data);
         const data = res.data || {};
         const safe = {
           flavours: (data.flavours || []).map(s => (s || "").toString().trim()).filter(Boolean),
@@ -25,9 +28,28 @@ const FilterBar = ({ filters, onFilterChange }) => {
         safe.flavours.sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:'base'}));
         safe.categories.sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:'base'}));
         safe.weights.sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:'base'}));
+        console.log("Processed filter options:", safe);
         setOptions(safe);
       })
-      .catch((err) => console.error("Error fetching filter options:", err));
+      .catch((err) => {
+        console.error("Error fetching filter options:", err);
+        try {
+          console.error("Requested URL:", err.config && err.config.url);
+          console.error("Response status:", err.response && err.response.status);
+          console.error("Response data:", err.response && err.response.data);
+        } catch (e) {
+          console.error("Error reading axios error details", e);
+        }
+        // Fallback to safe defaults so the UI remains usable
+        const fallback = {
+          categories: ["Chocolate", "Wedding", "Birthday"],
+          flavours: ["Dark Chocolate", "Vanilla"],
+          weights: ["500g", "1kg"],
+          priceRange: { min: 400, max: 1200 }
+        };
+        setOptions(fallback);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -79,6 +101,12 @@ const FilterBar = ({ filters, onFilterChange }) => {
           <option key={i} value={wt}>{wt}</option>
         ))}
       </select>
+
+      {/* Price range label + Sorting */}
+      <div className="flex items-center gap-2">
+        <div className="text-sm text-gray-600">Price:</div>
+        <div className="text-sm font-medium">₹{options.priceRange.min} - ₹{options.priceRange.max}</div>
+      </div>
 
       {/* Price Sorting */}
       <select
