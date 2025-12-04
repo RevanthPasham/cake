@@ -12,20 +12,17 @@ app.use(express.json());
 
 // CONNECT TO MONGO
 const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/cake-shop';
-console.log('Attempting to connect to MongoDB...');
-console.log('MongoDB URL:', mongoUrl);
-
 mongoose.connect(mongoUrl, {
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
 })
   .then(() => console.log("MongoDB Connected"))
-  .catch((err) => {
-    console.error("MongoDB Connection Error:", err.message);
-    console.error("Full error:", err);
-  });
+  .catch((err) => console.error("MongoDB Connection Error:", err.message));
 
-// GET categories
+
+// ============================================================
+// GET ALL CATEGORIES
+// ============================================================
 app.get("/categories", async (req, res) => {
   try {
     const cat = await Category.find();
@@ -35,118 +32,78 @@ app.get("/categories", async (req, res) => {
   }
 });
 
-// GET filter options
+
+// ============================================================
+// GET FILTER OPTIONS (ONLY THIS ROUTE!)
+// ============================================================
 app.get("/filter-options", async (req, res) => {
-  console.log("Filter options endpoint called");
   try {
-    // Try to get data from database, fallback to mock data if MongoDB not connected
-    let categories = [], flavours = [], weights = [], vegOptions = [], priceRange = { min: 0, max: 0 };
+    const cakes = await Cake.find();
 
-    try {
-      const cakes = await Cake.find();
-      console.log("Found", cakes.length, "cakes in database");
+    const categories = [...new Set(cakes.flatMap(c => c.categories || []))];
+    const flavours = [...new Set(cakes.map(c => c.flavour).filter(Boolean))];
+    const weights = [...new Set(cakes.flatMap(c => c.weightOptions || []))];
+    const vegOptions = [...new Set(cakes.map(c => c.veg ? 'veg' : 'nonveg'))];
 
-      // Extract unique values
-      categories = [...new Set(cakes.flatMap(cake => cake.categories || []))];
-      flavours = [...new Set(cakes.map(cake => cake.flavour).filter(Boolean))];
-      weights = [...new Set(cakes.flatMap(cake => cake.weightOptions || []))];
-      vegOptions = [...new Set(cakes.map(cake => cake.veg ? 'veg' : 'nonveg'))];
-
-      // Get price range
-      const allPrices = cakes.flatMap(cake => cake.prices || []);
-      priceRange = {
-        min: allPrices.length > 0 ? Math.min(...allPrices) : 0,
-        max: allPrices.length > 0 ? Math.max(...allPrices) : 0
-      };
-    } catch (dbError) {
-      console.log("Database not available, using mock data");
-      // Mock data for when MongoDB is not running
-      categories = ['Chocolate', 'Wedding', 'Birthday'];
-      flavours = ['Dark Chocolate', 'Vanilla'];
-      weights = ['500g', '1kg'];
-      vegOptions = ['veg'];
-      priceRange = { min: 400, max: 1200 };
-    }
-
-    const response = {
-      categories,
-      flavours,
-      weights,
-      vegOptions,
-      priceRange
+    const allPrices = cakes.flatMap(c => c.prices || []);
+    const priceRange = {
+      min: allPrices.length ? Math.min(...allPrices) : 0,
+      max: allPrices.length ? Math.max(...allPrices) : 0
     };
 
-    console.log("Sending filter options:", response);
-    res.json(response);
+    res.json({ categories, flavours, weights, vegOptions, priceRange });
   } catch (err) {
-    console.error("Error in filter-options:", err);
     res.status(500).json({ error: "Failed to fetch filter options" });
   }
 });
 
-// GET filtered cakes
+
+// ============================================================
+// FILTER CAKES
+// ============================================================
 app.get("/cakes/filter", async (req, res) => {
   try {
     let { category, flavour, weight, veg, sort } = req.query;
 
-    // Ensure values are strings (handle case where express gives arrays)
-    if (Array.isArray(category)) category = category[0];
-    if (Array.isArray(flavour)) flavour = flavour[0];
-    if (Array.isArray(weight)) weight = weight[0];
-    if (Array.isArray(veg)) veg = veg[0];
-    if (Array.isArray(sort)) sort = sort[0];
-
-    // helper to escape regex chars
-    const escapeRegex = (s) => {
-      if (typeof s !== 'string') return '';
-      return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    };
+    const escapeRegex = (s) =>
+      typeof s === "string" ? s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : "";
 
     const query = {};
 
-    // Build filter query with case-insensitive matching
-    if (veg && veg !== 'all') {
-      query.veg = veg === 'veg';
+    if (veg && veg !== "all") {
+      query.veg = veg === "veg";
     }
 
-    if (category && category !== 'all') {
-      // categories is an array field - use $elemMatch with $regex
-      const rx = new RegExp(`^${escapeRegex(category)}$`, 'i');
-      query.categories = { $elemMatch: { $regex: rx } };
+    if (category && category !== "all") {
+      query.categories = { $elemMatch: { $regex: new RegExp(`^${escapeRegex(category)}$`, "i") } };
     }
 
-    if (flavour && flavour !== 'all') {
-      const rx = new RegExp(`^${escapeRegex(flavour)}$`, 'i');
-      query.flavour = { $regex: rx };
+    if (flavour && flavour !== "all") {
+      query.flavour = { $regex: new RegExp(`^${escapeRegex(flavour)}$`, "i") };
     }
 
-    if (weight && weight !== 'all') {
-      // weightOptions is an array field - use $elemMatch with $regex
-      const rx = new RegExp(`^${escapeRegex(weight)}$`, 'i');
-      query.weightOptions = { $elemMatch: { $regex: rx } };
+    if (weight && weight !== "all") {
+      query.weightOptions = { $elemMatch: { $regex: new RegExp(`^${escapeRegex(weight)}$`, "i") } };
     }
-
-    console.log('Filter request received:', req.query);
-    console.log('Mongo query built:', JSON.stringify(query));
 
     let cakes = await Cake.find(query);
 
-    // Apply sorting
-    if (sort === 'low') {
-      cakes.sort((a, b) => (a.prices?.[0] || 0) - (b.prices?.[0] || 0));
-    } else if (sort === 'high') {
-      cakes.sort((a, b) => (b.prices?.[0] || 0) - (a.prices?.[0] || 0));
+    if (sort === "low") {
+      cakes.sort((a, b) => (a.prices[0] || 0) - (b.prices[0] || 0));
+    } else if (sort === "high") {
+      cakes.sort((a, b) => (b.prices[0] || 0) - (a.prices[0] || 0));
     }
 
-    console.log("Found cakes:", cakes.length);
     res.json(cakes);
   } catch (err) {
-    console.error("Filter error:", err.message);
-    res.status(500).json({ error: "Failed to fetch filtered cakes", details: err.message });
+    res.status(500).json({ error: "Failed to fetch filtered cakes" });
   }
 });
 
-// GET all cakes
+
+// ============================================================
+// GET ALL CAKES (FULL DATA!) — Used by CategoryPage
+// ============================================================
 app.get("/cakes", async (req, res) => {
   try {
     const cakes = await Cake.find();
@@ -156,19 +113,10 @@ app.get("/cakes", async (req, res) => {
   }
 });
 
-// GET cakes by category
-app.get("/cakes/:category", async (req, res) => {
-  try {
-    // Support both legacy `category` and newer `categories` array
-    const q = req.params.category;
-    const cakes = await Cake.find({ $or: [{ categories: q }, { category: q }] });
-    res.json(cakes);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch cakes" });
-  }
-});
 
-// GET cake by ID (IMPORTANT)
+// ============================================================
+// GET SINGLE CAKE BY ID — Used by CakeDetail
+// ============================================================
 app.get("/cake/:id", async (req, res) => {
   try {
     const cake = await Cake.findById(req.params.id);
@@ -179,78 +127,50 @@ app.get("/cake/:id", async (req, res) => {
   }
 });
 
-// RELATED CAKES (only 10)
+
+// ============================================================
+// RELATED CAKES — used on detail page
+// ============================================================
 app.get("/related-cakes/:id", async (req, res) => {
   try {
     const cake = await Cake.findById(req.params.id);
     if (!cake) return res.status(404).json({ error: "Cake not found" });
 
     const related = await Cake.find({
-        _id: { $ne: cake._id },
-        $or: [
-          { categories: { $in: cake.categories || [] } },
-          { category: cake.category }
-        ]
+      _id: { $ne: cake._id },
+      categories: { $in: cake.categories }
     }).limit(10);
 
     res.json(related);
   } catch {
-    res.status(500).json({ error: "Failed to fetch related cakes" });
-  }
-});
-// GET cakes by category name (matching categories array)
-app.get('/cakes/category/:categoryName', async (req, res) => {
-  try {
-    const { categoryName } = req.params;
-    // First, find the category document to get its categories array
-    const categoryDoc = await Category.findOne({ name: categoryName });
-    if (!categoryDoc) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
-    // Find cakes where the categories array intersects with the category's categories array
-    const cakes = await Cake.find({ categories: { $in: categoryDoc.categories } });
-    res.json(cakes);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch cakes' });
+    res.status(500).json({ error: "Failed to load related cakes" });
   }
 });
 
 
-// ALL RELATED CAKES (full list)
-app.get("/all-related-cakes/:id", async (req, res) => {
-  try {
-    const cake = await Cake.findById(req.params.id);
-    if (!cake) return res.status(404).json({ error: "Cake not found" });
-
-    const relatedAll = await Cake.find({
-      _id: { $ne: cake._id },
-      categories: { $in: cake.categories },
-    });
-
-    res.json(relatedAll);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch full related list" });
-  }
-});
-
-// ADD CAKE
+// ============================================================
+// CREATE CAKE
+// ============================================================
 app.post("/cakes", async (req, res) => {
   try {
     const cake = new Cake(req.body);
     await cake.save();
     res.json({ message: "Cake added!", cake });
-  } catch {
+  } catch (err) {
     res.status(500).json({ error: "Failed to add cake" });
   }
 });
 
-// ADD CATEGORY
+
+// ============================================================
+// CREATE CATEGORY
+// ============================================================
 app.post("/categories", async (req, res) => {
   try {
     const cat = new Category(req.body);
     await cat.save();
     res.json({ message: "Category added!", cat });
-  } catch {
+  } catch (err) {
     res.status(500).json({ error: "Failed to add category" });
   }
 });

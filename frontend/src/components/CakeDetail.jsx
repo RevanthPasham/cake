@@ -24,22 +24,19 @@ const CakeDetail = () => {
     _id: cake?._id || ''
   };
 
-  useEffect(() => {
-    const loadCake = async () => {
-      try {
-        let res = await axios.get(`${BASE_API}/cake/${id}`).catch(() => null);
-        if (!res) res = await axios.get(`${BASE_API}/cakes/${id}`);
+ useEffect(() => {
+  const loadCake = async () => {
+    try {
+      const res = await axios.get(`${BASE_API}/cake/${id}`);
+      setCake(res.data);
+    } catch (error) {
+      console.error("Error loading cake:", error);
+    }
+  };
 
-        const data = res.data.cake ? res.data.cake : res.data;
+  loadCake();
+}, [id]);
 
-        setCake(data);
-      } catch (error) {
-        console.error("Error loading cake:", error);
-      }
-    };
-
-    loadCake();
-  }, [id]);
 
   // Reset selectedWeight if out of bounds
   useEffect(() => {
