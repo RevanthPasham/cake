@@ -278,6 +278,16 @@ app.get("/categories", async (req, res) => {
   }
 });
 
+
+app.get("/api/test-db", async (req, res) => {
+  try {
+    await connectToDatabase();
+    res.send("DB Connected Successfully");
+  } catch (err) {
+    res.status(500).send("DB FAILED: " + err.message);
+  }
+});
+
 // ALL CAKES (old route for compatibility)
 app.get("/cakes", async (req, res) => {
   try {

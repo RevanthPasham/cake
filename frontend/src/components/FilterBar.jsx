@@ -9,7 +9,7 @@ const FilterBar = ({ filters, onFilterChange }) => {
   });
 
   useEffect(() => {
-    axios.get(`${BASE_API}/filter-options`).then((res) => {
+    axios.get(`${BASE_API}/api/filter-options`).then((res) => {
       setOptions({
         flavours: res.data.flavours || [],
         weights: res.data.weights || [],
