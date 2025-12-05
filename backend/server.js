@@ -60,7 +60,7 @@ app.get("/", (req, res) => {
 // ========================================================================
 
 // GET ALL CATEGORIES
-app.get("/categories", async (req, res) => {
+app.get("/api/categories", async (req, res) => {
   try {
     await connectToDatabase();
     const cat = await Category.find();
@@ -71,7 +71,7 @@ app.get("/categories", async (req, res) => {
 });
 
 // FILTER OPTIONS
-app.get("/filter-options", async (req, res) => {
+app.get("/api/filter-options", async (req, res) => {
   try {
     await connectToDatabase();
     const cakes = await Cake.find();
@@ -96,7 +96,7 @@ app.get("/filter-options", async (req, res) => {
 });
 
 // SEARCH SUGGESTIONS
-app.get("/search-suggestions", async (req, res) => {
+app.get("/api/search-suggestions", async (req, res) => {
   try {
     await connectToDatabase();
     const q = req.query.q || "";
@@ -134,7 +134,7 @@ app.get("/search-suggestions", async (req, res) => {
 });
 
 // SEARCH
-app.get("/search", async (req, res) => {
+app.get("/api/search", async (req, res) => {
   try {
     await connectToDatabase();
     const q = req.query.q || "";
@@ -169,7 +169,7 @@ app.get("/search", async (req, res) => {
 });
 
 // FILTERED CAKES
-app.get("/cakes/filter", async (req, res) => {
+app.get("/api/cakes/filter", async (req, res) => {
   try {
     await connectToDatabase();
     let { category, flavour, weight, veg, sort } = req.query;
@@ -208,7 +208,7 @@ app.get("/cakes/filter", async (req, res) => {
 });
 
 // ALL CAKES
-app.get("/cakes", async (req, res) => {
+app.get("/api/cakes", async (req, res) => {
   try {
     await connectToDatabase();
     const cakes = await Cake.find();
@@ -219,7 +219,7 @@ app.get("/cakes", async (req, res) => {
 });
 
 // CAKES BY CATEGORY
-app.get("/cakes/:category", async (req, res) => {
+app.get("/api/cakes/:category", async (req, res) => {
   try {
     await connectToDatabase();
     const q = req.params.category;
@@ -233,7 +233,7 @@ app.get("/cakes/:category", async (req, res) => {
 });
 
 // SINGLE CAKE
-app.get("/cake/:id", async (req, res) => {
+app.get("/api/cake/:id", async (req, res) => {
   try {
     await connectToDatabase();
     const cake = await Cake.findById(req.params.id);
@@ -245,7 +245,7 @@ app.get("/cake/:id", async (req, res) => {
 });
 
 // RELATED CAKES
-app.get("/related-cakes/:id", async (req, res) => {
+app.get("/api/related-cakes/:id", async (req, res) => {
   try {
     await connectToDatabase();
     const cake = await Cake.findById(req.params.id);
