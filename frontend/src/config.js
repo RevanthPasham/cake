@@ -1,1 +1,1 @@
-export const BASE_API = "https://sweetbytes-five.vercel.app";
+export const BASE_API = "https://sweet-bytesb.vercel.app";
