@@ -31,6 +31,9 @@ async function connectToDatabase() {
   }
 
   if (!cached.promise) {
+    if (!mongoUrl) {
+      throw new Error('MONGO_URL environment variable is not set');
+    }
     const opts = {
       // prevent mongoose from buffering operations indefinitely
       bufferCommands: false,
@@ -262,9 +265,28 @@ app.get("/api/related-cakes/:id", async (req, res) => {
   }
 });
 
-// Catch-all route to serve index.html for SPA (must be last, excluding /assets and /api)
-app.get(/^\/(?!assets|api).*/, (req, res) => {
-  res.sendFile(__dirname + '/public/index.html');
+
+
+// GET ALL CATEGORIES (old route for compatibility)
+app.get("/categories", async (req, res) => {
+  try {
+    await connectToDatabase();
+    const cat = await Category.find();
+    res.json(cat);
+  } catch {
+    res.status(500).json({ error: "Failed to fetch categories" });
+  }
+});
+
+// ALL CAKES (old route for compatibility)
+app.get("/cakes", async (req, res) => {
+  try {
+    await connectToDatabase();
+    const cakes = await Cake.find();
+    res.json(cakes);
+  } catch {
+    res.status(500).json({ error: "Failed to fetch cakes" });
+  }
 });
 
 // =============== EXPORT APP FOR VERCEL ===============
