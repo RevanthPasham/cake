@@ -27,7 +27,7 @@ const SearchPage = () => {
     if (!query) return;
 
     axios
-      .get(`${BASE_API}/search?q=${query}`)
+      .get(`${BASE_API}/api/search?q=${query}`)
       .then((res) => {
         setResults(res.data);
         setFiltered(res.data);

@@ -8,7 +8,7 @@ const RelatedCakes = ({ cakeId, categories }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get(`${BASE_API}/related-cakes/${cakeId}`)
+    axios.get(`${BASE_API}/api/related-cakes/${cakeId}`)
       .then((res) => setRelated(res.data))
       .catch(() => setRelated([]));
   }, [cakeId]);

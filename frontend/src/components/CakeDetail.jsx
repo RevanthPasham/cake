@@ -15,7 +15,7 @@ const CakeDetail = () => {
   useEffect(() => {
     const loadCake = async () => {
       try {
-        const res = await axios.get(`${BASE_API}/cake/${id}`);
+        const res = await axios.get(`${BASE_API}/api/cake/${id}`);
         setCake(res.data);
       } catch (error) {
         console.error("Error loading cake:", error);

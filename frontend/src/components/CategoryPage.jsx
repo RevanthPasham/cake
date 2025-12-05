@@ -35,7 +35,7 @@ const CategoryPage = () => {
   };
 
   useEffect(() => {
-    axios.get(`${BASE_API}/cakes`).then((res) => setAllCakes(res.data));
+    axios.get(`${BASE_API}/api/cakes`).then((res) => setAllCakes(res.data));
   }, []);
 
   useEffect(() => {

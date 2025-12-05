@@ -10,7 +10,7 @@ const Slider = () => {
 
   useEffect(() => {
     axios
-      .get(`${BASE_API}/categories`)
+      .get(`${BASE_API}/api/categories`)
       .then((res) => {
         setCategories(res.data);
       })
