@@ -19,13 +19,36 @@ app.get('/assets/*', (req, res) => {
   res.sendFile(filePath);
 });
 
+// Use a cached mongoose connection for serverless environments (Vercel)
 const mongoUrl = process.env.MONGO_URL;
 
-// Connect to MongoDB (Vercel compatible)
-mongoose
-  .connect(mongoUrl)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB Error:", err.message));
+// Cached connection across lambda invocations
+const cached = global._mongoCached || (global._mongoCached = { conn: null, promise: null });
+
+async function connectToDatabase() {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      // prevent mongoose from buffering operations indefinitely
+      bufferCommands: false,
+      // other options can go here
+    };
+    cached.promise = mongoose.connect(mongoUrl, opts).then((mongooseInstance) => {
+      cached.conn = mongooseInstance;
+      console.log('✅ MongoDB Connected');
+      return cached.conn;
+    }).catch((err) => {
+      console.error('❌ MongoDB Connection Error:', err && err.message ? err.message : err);
+      // rethrow so callers can handle
+      throw err;
+    });
+  }
+
+  return cached.promise;
+}
 
 // =============== DEFAULT TEST ROUTE (IMPORTANT FOR VERCEL) ===============
 app.get("/", (req, res) => {
@@ -39,6 +62,7 @@ app.get("/", (req, res) => {
 // GET ALL CATEGORIES
 app.get("/categories", async (req, res) => {
   try {
+    await connectToDatabase();
     const cat = await Category.find();
     res.json(cat);
   } catch {
@@ -49,6 +73,7 @@ app.get("/categories", async (req, res) => {
 // FILTER OPTIONS
 app.get("/filter-options", async (req, res) => {
   try {
+    await connectToDatabase();
     const cakes = await Cake.find();
 
     const categories = [...new Set(cakes.flatMap(c => c.categories || []))];
@@ -73,6 +98,7 @@ app.get("/filter-options", async (req, res) => {
 // SEARCH SUGGESTIONS
 app.get("/search-suggestions", async (req, res) => {
   try {
+    await connectToDatabase();
     const q = req.query.q || "";
     if (!q.trim()) return res.json([]);
 
@@ -110,6 +136,7 @@ app.get("/search-suggestions", async (req, res) => {
 // SEARCH
 app.get("/search", async (req, res) => {
   try {
+    await connectToDatabase();
     const q = req.query.q || "";
     if (!q.trim()) return res.json([]);
 
@@ -144,6 +171,7 @@ app.get("/search", async (req, res) => {
 // FILTERED CAKES
 app.get("/cakes/filter", async (req, res) => {
   try {
+    await connectToDatabase();
     let { category, flavour, weight, veg, sort } = req.query;
 
     const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -182,6 +210,7 @@ app.get("/cakes/filter", async (req, res) => {
 // ALL CAKES
 app.get("/cakes", async (req, res) => {
   try {
+    await connectToDatabase();
     const cakes = await Cake.find();
     res.json(cakes);
   } catch {
@@ -192,6 +221,7 @@ app.get("/cakes", async (req, res) => {
 // CAKES BY CATEGORY
 app.get("/cakes/:category", async (req, res) => {
   try {
+    await connectToDatabase();
     const q = req.params.category;
     const cakes = await Cake.find({
       $or: [{ categories: q }, { category: q }],
@@ -205,6 +235,7 @@ app.get("/cakes/:category", async (req, res) => {
 // SINGLE CAKE
 app.get("/cake/:id", async (req, res) => {
   try {
+    await connectToDatabase();
     const cake = await Cake.findById(req.params.id);
     if (!cake) return res.status(404).json({ error: "Cake not found" });
     res.json(cake);
@@ -216,6 +247,7 @@ app.get("/cake/:id", async (req, res) => {
 // RELATED CAKES
 app.get("/related-cakes/:id", async (req, res) => {
   try {
+    await connectToDatabase();
     const cake = await Cake.findById(req.params.id);
     if (!cake) return res.status(404).json({ error: "Cake not found" });
 
