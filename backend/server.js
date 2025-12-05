@@ -224,8 +224,8 @@ app.get("/related-cakes/:id", async (req, res) => {
   }
 });
 
-// Catch-all route to serve index.html for SPA (must be last)
-app.get('*', (req, res) => {
+// Catch-all route to serve index.html for SPA (must be last, excluding /assets and /api)
+app.get(/^\/(?!assets|api).*/, (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
 });
 
