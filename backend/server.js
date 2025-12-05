@@ -10,30 +10,36 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ============================
 // CONNECT DATABASE
-let mongoUrl = process.env.MONGO_URL;
+// ============================
+const mongoUrl = process.env.MONGO_URL;
+
 if (!mongoUrl) {
-  console.warn("MONGO_URL not in env, trying hardcoded Atlas URL");
-  mongoUrl = "mongodb+srv://pashamrevanth541_db_user:qbI0qLlgAjHtmTYv@cluster0.hrrdcoe.mongodb.net/cakes_db";
+  console.error("❌ ERROR: MONGO_URL missing in .env file!");
+  process.exit(1);
 }
 
-console.log("Attempting connection with URL:", mongoUrl.substring(0, 50) + "...");
+console.log("Connecting to MongoDB...");
 
 async function startServer() {
   try {
     await mongoose.connect(mongoUrl, {
       serverSelectionTimeoutMS: 10000,
     });
-    console.log("MongoDB Connected");
-    
-    // Start server only after DB connection
-    app.listen(5000, () => console.log("Server running on port 5000"));
+
+    console.log("✅ MongoDB Connected Successfully");
+
+    app.listen(5000, () =>
+      console.log("🚀 Server running on http://localhost:5000")
+    );
+
   } catch (err) {
-    console.error("MongoDB Connection Error:", err.message);
-    console.error("URL was:", mongoUrl.substring(0, 50) + "...");
+    console.error("❌ MongoDB Connection Error:", err.message);
     process.exit(1);
   }
 }
+
 
 
 // =====================
@@ -47,6 +53,7 @@ app.get("/categories", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch categories" });
   }
 });
+
 
 
 // =====================
@@ -77,8 +84,9 @@ app.get("/filter-options", async (req, res) => {
 });
 
 
+
 // ==============================
-// ⭐ SEARCH SUGGESTIONS (IMPORTANT: MUST COME BEFORE /cakes/:category)
+// SEARCH SUGGESTIONS
 // ==============================
 app.get("/search-suggestions", async (req, res) => {
   try {
@@ -108,7 +116,7 @@ app.get("/search-suggestions", async (req, res) => {
       });
     });
 
-    res.json([...new Set(suggestions)]); // remove duplicates
+    res.json([...new Set(suggestions)]);
 
   } catch (err) {
     console.error("Suggestion error:", err);
@@ -117,13 +125,13 @@ app.get("/search-suggestions", async (req, res) => {
 });
 
 
+
 // =====================
 // TOKENIZED SEARCH PAGE
 // =====================
 app.get("/search", async (req, res) => {
   try {
     const q = req.query.q || "";
-
     if (!q.trim()) return res.json([]);
 
     const tokens = q
@@ -154,6 +162,7 @@ app.get("/search", async (req, res) => {
     res.status(500).json({ error: "Search failed" });
   }
 });
+
 
 
 // =====================
@@ -197,6 +206,7 @@ app.get("/cakes/filter", async (req, res) => {
 });
 
 
+
 // =====================
 // GET ALL CAKES
 // =====================
@@ -208,6 +218,7 @@ app.get("/cakes", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch cakes" });
   }
 });
+
 
 
 // =====================
@@ -229,6 +240,7 @@ app.get("/cakes/:category", async (req, res) => {
 });
 
 
+
 // =====================
 // SINGLE CAKE
 // =====================
@@ -241,6 +253,7 @@ app.get("/cake/:id", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch cake details" });
   }
 });
+
 
 
 // =====================
@@ -263,6 +276,7 @@ app.get("/related-cakes/:id", async (req, res) => {
     res.json([]);
   }
 });
+
 
 
 // =====================

@@ -6,7 +6,6 @@ const FilterBar = ({ filters, onFilterChange }) => {
   const [options, setOptions] = useState({
     flavours: [],
     weights: [],
-    priceRange: { min: 0, max: 0 },
   });
 
   useEffect(() => {
@@ -14,62 +13,81 @@ const FilterBar = ({ filters, onFilterChange }) => {
       setOptions({
         flavours: res.data.flavours || [],
         weights: res.data.weights || [],
-        priceRange: res.data.priceRange || { min: 0, max: 0 },
       });
     });
   }, []);
 
+  const getWrapperStyle = (key) => {
+    const isActive = filters[key] !== "all" && filters[key] !== "default";
+
+    return isActive
+      ? "bg-amber-100 border-amber-400"
+      : "bg-white border-gray-300";
+  };
+
+  // ⭐ Ultra-compact pill style
+ const selectStyle =
+  "text-[10px] bg-transparent pl-2 pr-4 rounded-full " +
+  "focus:outline-none appearance-none h-[24px] leading-[24px]";
+
+
   return (
-    <div className="flex gap-3 mb-4 flex-wrap">
+    <div className="flex gap-1 whitespace-nowrap mb-4 items-center">
 
-      <select
-        className="border p-2 rounded"
-        value={filters.veg}
-        onChange={(e) => onFilterChange("veg", e.target.value)}
-      >
-        <option value="all">All</option>
-        <option value="veg">Veg</option>
-        <option value="nonveg">Non-Veg</option>
-      </select>
-
-      <select
-        className="border p-2 rounded"
-        value={filters.flavour}
-        onChange={(e) => onFilterChange("flavour", e.target.value)}
-      >
-        <option value="all">All Flavours</option>
-        {options.flavours.map((flav, i) => (
-          <option key={i} value={flav}>{flav}</option>
-        ))}
-      </select>
-
-      <select
-        className="border p-2 rounded"
-        value={filters.weight}
-        onChange={(e) => onFilterChange("weight", e.target.value)}
-      >
-        <option value="all">All Weights</option>
-        {options.weights.map((wt, i) => (
-          <option key={i} value={wt}>{wt}</option>
-        ))}
-      </select>
-
-      <div className="text-sm flex items-center gap-2">
-        <span className="text-gray-600">Price:</span>
-        <span className="font-medium">
-          ₹{options.priceRange.min} - ₹{options.priceRange.max}
-        </span>
+      {/* Veg */}
+      <div className={`border flex  rounded-full px-1 h-[24px] ${getWrapperStyle("veg")}`}>
+        <select
+          className={selectStyle}
+          value={filters.veg}
+          onChange={(e) => onFilterChange("veg", e.target.value)}
+        >
+          <option value="all">Veg/Non-Veg</option>
+          <option value="veg">Veg Only</option>
+          <option value="nonveg">Non-Veg</option>
+        </select>
       </div>
 
-      <select
-        className="border p-2 rounded"
-        value={filters.sort}
-        onChange={(e) => onFilterChange("sort", e.target.value)}
-      >
-        <option value="default">Sort</option>
-        <option value="low">Low → High</option>
-        <option value="high">High → Low</option>
-      </select>
+      {/* Flavours */}
+      <div className={`border flex rounded-full px-1 h-[24px] ${getWrapperStyle("flavour")}`}>
+        <select
+          className={selectStyle}
+          value={filters.flavour}
+          onChange={(e) => onFilterChange("flavour", e.target.value)}
+        >
+          <option value="all">Flavours</option>
+          {options.flavours.map((flav, i) => (
+            <option key={i} value={flav}>{flav}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Weights */}
+      <div className={`border flex rounded-full px-1 h-[24px] ${getWrapperStyle("weight")}`}>
+        <select
+          className={selectStyle}
+          value={filters.weight}
+          onChange={(e) => onFilterChange("weight", e.target.value)}
+        >
+          <option value="all">Weights</option>
+          {options.weights.map((wt, i) => (
+            <option key={i} value={wt}>{wt}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Sort */}
+      <div className={`border flex rounded-full px-1 h-[24px] ${getWrapperStyle("sort")}`}>
+        <select
+          className={selectStyle}
+          value={filters.sort}
+          onChange={(e) => onFilterChange("sort", e.target.value)}
+        >
+          <option value="default">Sort</option>
+          <option value="low">Low → High</option>
+          <option value="high">High → Low</option>
+        </select>
+      </div>
+
     </div>
   );
 };
