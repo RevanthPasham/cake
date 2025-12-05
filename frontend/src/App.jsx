@@ -13,6 +13,7 @@ function App() {
 
   return (
     <Router>
+      <div>Hello World</div>
       <Navbar />
 
       <Routes>
