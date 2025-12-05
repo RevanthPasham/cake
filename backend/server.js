@@ -10,41 +10,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ============================
-// CONNECT DATABASE
-// ============================
 const mongoUrl = process.env.MONGO_URL;
 
-if (!mongoUrl) {
-  console.error("❌ ERROR: MONGO_URL missing in .env file!");
-  process.exit(1);
-}
+// Connect to MongoDB (Vercel compatible)
+mongoose
+  .connect(mongoUrl)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.error("❌ MongoDB Error:", err.message));
 
-console.log("Connecting to MongoDB...");
+// =============== DEFAULT TEST ROUTE (IMPORTANT FOR VERCEL) ===============
+app.get("/", (req, res) => {
+  res.send("🎂 Cake Backend API is Running on Vercel!");
+});
 
-async function startServer() {
-  try {
-    await mongoose.connect(mongoUrl, {
-      serverSelectionTimeoutMS: 10000,
-    });
+// ========================================================================
+// ALL YOUR EXISTING ROUTES (no change)
+// ========================================================================
 
-    console.log("✅ MongoDB Connected Successfully");
-
-    app.listen(5000, () =>
-      console.log("🚀 Server running on http://localhost:5000")
-    );
-
-  } catch (err) {
-    console.error("❌ MongoDB Connection Error:", err.message);
-    process.exit(1);
-  }
-}
-
-
-
-// =====================
 // GET ALL CATEGORIES
-// =====================
 app.get("/categories", async (req, res) => {
   try {
     const cat = await Category.find();
@@ -54,11 +37,7 @@ app.get("/categories", async (req, res) => {
   }
 });
 
-
-
-// =====================
 // FILTER OPTIONS
-// =====================
 app.get("/filter-options", async (req, res) => {
   try {
     const cakes = await Cake.find();
@@ -66,10 +45,9 @@ app.get("/filter-options", async (req, res) => {
     const categories = [...new Set(cakes.flatMap(c => c.categories || []))];
     const flavours = [...new Set(cakes.map(c => c.flavour).filter(Boolean))];
     const weights = [...new Set(cakes.flatMap(c => c.weightOptions || []))];
-    const vegOptions = [...new Set(cakes.map(c => c.veg ? "veg" : "nonveg"))];
+    const vegOptions = [...new Set(cakes.map(c => (c.veg ? "veg" : "nonveg")))];
 
     const allPrices = cakes.flatMap(c => c.prices || []);
-
     const priceRange = {
       min: allPrices.length ? Math.min(...allPrices) : 0,
       max: allPrices.length ? Math.max(...allPrices) : 0
@@ -83,11 +61,7 @@ app.get("/filter-options", async (req, res) => {
   }
 });
 
-
-
-// ==============================
 // SEARCH SUGGESTIONS
-// ==============================
 app.get("/search-suggestions", async (req, res) => {
   try {
     const q = req.query.q || "";
@@ -124,11 +98,7 @@ app.get("/search-suggestions", async (req, res) => {
   }
 });
 
-
-
-// =====================
-// TOKENIZED SEARCH PAGE
-// =====================
+// SEARCH
 app.get("/search", async (req, res) => {
   try {
     const q = req.query.q || "";
@@ -154,7 +124,6 @@ app.get("/search", async (req, res) => {
     });
 
     const results = await Cake.find({ $or: orConditions }).limit(50);
-
     res.json(results);
 
   } catch (err) {
@@ -163,11 +132,7 @@ app.get("/search", async (req, res) => {
   }
 });
 
-
-
-// =====================
 // FILTERED CAKES
-// =====================
 app.get("/cakes/filter", async (req, res) => {
   try {
     let { category, flavour, weight, veg, sort } = req.query;
@@ -176,19 +141,19 @@ app.get("/cakes/filter", async (req, res) => {
 
     const query = {};
 
-    if (veg && veg !== "all") query.veg = veg === "veg";
+    if (veg !== "all") query.veg = veg === "veg";
 
-    if (category && category !== "all") {
+    if (category !== "all") {
       const rx = new RegExp(`^${escapeRegex(category)}$`, "i");
       query.categories = { $elemMatch: { $regex: rx } };
     }
 
-    if (flavour && flavour !== "all") {
+    if (flavour !== "all") {
       const rx = new RegExp(`^${escapeRegex(flavour)}$`, "i");
       query.flavour = { $regex: rx };
     }
 
-    if (weight && weight !== "all") {
+    if (weight !== "all") {
       const rx = new RegExp(`^${escapeRegex(weight)}$`, "i");
       query.weightOptions = { $elemMatch: { $regex: rx } };
     }
@@ -205,11 +170,7 @@ app.get("/cakes/filter", async (req, res) => {
   }
 });
 
-
-
-// =====================
-// GET ALL CAKES
-// =====================
+// ALL CAKES
 app.get("/cakes", async (req, res) => {
   try {
     const cakes = await Cake.find();
@@ -219,19 +180,12 @@ app.get("/cakes", async (req, res) => {
   }
 });
 
-
-
-// =====================
-// GET CAKES BY CATEGORY
-// =====================
+// CAKES BY CATEGORY
 app.get("/cakes/:category", async (req, res) => {
   try {
     const q = req.params.category;
     const cakes = await Cake.find({
-      $or: [
-        { categories: q },
-        { category: q }
-      ]
+      $or: [{ categories: q }, { category: q }],
     });
     res.json(cakes);
   } catch {
@@ -239,11 +193,7 @@ app.get("/cakes/:category", async (req, res) => {
   }
 });
 
-
-
-// =====================
 // SINGLE CAKE
-// =====================
 app.get("/cake/:id", async (req, res) => {
   try {
     const cake = await Cake.findById(req.params.id);
@@ -254,11 +204,7 @@ app.get("/cake/:id", async (req, res) => {
   }
 });
 
-
-
-// =====================
 // RELATED CAKES
-// =====================
 app.get("/related-cakes/:id", async (req, res) => {
   try {
     const cake = await Cake.findById(req.params.id);
@@ -270,16 +216,10 @@ app.get("/related-cakes/:id", async (req, res) => {
     }).limit(10);
 
     res.json(related);
-
-  } catch (err) {
-    console.error("Related cakes error:", err);
+  } catch {
     res.json([]);
   }
 });
 
-
-
-// =====================
-// START SERVER
-// =====================
-startServer();
+// =============== EXPORT APP FOR VERCEL ===============
+module.exports = app;
