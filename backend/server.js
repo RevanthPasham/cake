@@ -10,6 +10,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from public directory
+app.use(express.static('public'));
+
 const mongoUrl = process.env.MONGO_URL;
 
 // Connect to MongoDB (Vercel compatible)
@@ -219,6 +222,11 @@ app.get("/related-cakes/:id", async (req, res) => {
   } catch {
     res.json([]);
   }
+});
+
+// Catch-all route to serve index.html for SPA (must be last)
+app.get('*', (req, res) => {
+  res.sendFile(__dirname + '/public/index.html');
 });
 
 // =============== EXPORT APP FOR VERCEL ===============
