@@ -10,7 +10,6 @@ export const Navbar = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [showBox, setShowBox] = useState(false);
 
-  // Fetch suggestion list
   const fetchSuggestions = async (text) => {
     try {
       if (!text.trim()) {
@@ -25,7 +24,6 @@ export const Navbar = () => {
     }
   };
 
-  // Typing handler
   const handleChange = (e) => {
     const value = e.target.value;
     setQuery(value);
@@ -39,7 +37,6 @@ export const Navbar = () => {
     }
   };
 
-  // Press Enter → Search Immediately
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       navigate(`/search?q=${query}`);
@@ -48,17 +45,13 @@ export const Navbar = () => {
     }
   };
 
-  // Click suggestion → Immediate Search
   const handleSuggestionClick = (value) => {
     setQuery(value);
     navigate(`/search?q=${value}`);
-
-    // hide dropdown
     setShowBox(false);
     setSuggestions([]);
   };
 
-  // Hide suggestions when clicking outside
   useEffect(() => {
     const closeSuggestions = () => setShowBox(false);
     window.addEventListener("click", closeSuggestions);
@@ -68,7 +61,13 @@ export const Navbar = () => {
   return (
     <div className="flex items-center justify-between p-3 shadow bg-white sticky top-0 z-20 relative">
 
-      <h1 className="text-xl font-bold text-pink-600">Sweet Bites</h1>
+      {/* LOGO — Click to go Home */}
+      <div
+        className="text-xl font-bold text-pink-600 cursor-pointer select-none"
+        onClick={() => navigate("/")}
+      >
+        Sweet Bites
+      </div>
 
       {/* SEARCH BAR */}
       <div className="relative w-44 md:w-60">
@@ -82,7 +81,6 @@ export const Navbar = () => {
           onClick={(e) => e.stopPropagation()}
         />
 
-        {/* SUGGESTION LIST */}
         {showBox && suggestions.length > 0 && (
           <div
             className="absolute top-10 left-0 w-full bg-white shadow-xl rounded-xl max-h-60 overflow-y-auto p-2 z-30"

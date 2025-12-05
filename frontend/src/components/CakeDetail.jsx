@@ -1,4 +1,3 @@
-// CakeDetail.jsx
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -13,47 +12,47 @@ const CakeDetail = () => {
   const [selectedWeight, setSelectedWeight] = useState(0);
   const [imgIndex, setImgIndex] = useState(0);
 
-  // Helper to get safe cake properties
-  const safeCake = {
-    name: cake?.name || 'Unknown Cake',
-    longDescription: cake?.longDescription || 'No description available',
-    images: cake?.images || [],
-    weightOptions: cake?.weightOptions || [],
-    prices: cake?.prices || [],
-    categories: cake?.categories || [],
-    _id: cake?._id || ''
-  };
-
- useEffect(() => {
-  const loadCake = async () => {
-    try {
-      const res = await axios.get(`${BASE_API}/cake/${id}`);
-      setCake(res.data);
-    } catch (error) {
-      console.error("Error loading cake:", error);
-    }
-  };
-
-  loadCake();
-}, [id]);
-
-
-  // Reset selectedWeight if out of bounds
   useEffect(() => {
-    if (safeCake.weightOptions.length > 0 && selectedWeight >= safeCake.weightOptions.length) {
-      setSelectedWeight(0);
-    }
-  }, [cake, selectedWeight, safeCake.weightOptions.length]);
+    const loadCake = async () => {
+      try {
+        const res = await axios.get(`${BASE_API}/cake/${id}`);
+        setCake(res.data);
+      } catch (error) {
+        console.error("Error loading cake:", error);
+      }
+    };
+
+    loadCake();
+  }, [id]);
 
   if (!cake)
-    return <p className="text-center mt-10">Loading cake details...</p>;
+    return (
+      <p className="text-center mt-10">Loading cake details...</p>
+    );
+
+  const images = cake.images || [];
+  const weights = cake.weightOptions || [];
+  const prices = cake.prices || [];
+  const cutPrices = cake.cutPrices || [];
+
+  const name = cake.name || "Unknown Cake";
+  const longDescription =
+    cake.longDescription || "No description available";
+
+  const originalPrice = cutPrices[selectedWeight] ?? null;
+  const newPrice = prices[selectedWeight] ?? null;
+
+  let discount = null;
+  if (originalPrice && newPrice) {
+    discount = Math.round(
+      ((originalPrice - newPrice) / originalPrice) * 100
+    );
+  }
 
   const orderNow = () => {
-    const weight = safeCake.weightOptions[selectedWeight] || 'N/A';
-    const price = safeCake.prices[selectedWeight] || 'N/A';
-    const msg = `Cake: ${safeCake.name}
-Weight: ${weight}
-Price: ₹${price}`;
+    const msg = `Cake: ${name}\nWeight: ${
+      weights[selectedWeight] || "N/A"
+    }\nPrice: ₹${newPrice || "N/A"}`;
 
     window.open(
       `https://wa.me/9100894542?text=${encodeURIComponent(msg)}`,
@@ -64,7 +63,7 @@ Price: ₹${price}`;
   return (
     <div className="pb-20">
 
-      {/* Back */}
+      {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
         className="absolute top-4 left-4 bg-white p-2 rounded-full shadow"
@@ -73,19 +72,38 @@ Price: ₹${price}`;
       </button>
 
       {/* Image Slider */}
-      <div className="relative h-64 overflow-hidden">
+      <div className="relative h-64 overflow-hidden rounded-b-xl">
         <div
           className="flex transition-transform duration-500"
           style={{ transform: `translateX(-${imgIndex * 100}%)` }}
         >
-          {safeCake.images.map((img, i) => (
-            <img key={i} src={img} className="h-64 w-full object-cover" />
+          {images.map((img, i) => (
+            <img
+              key={i}
+              src={img}
+              className="h-64 w-full object-cover"
+            />
           ))}
         </div>
 
+        {/* Veg / Non-Veg Tag on Image */}
+        {cake.veg !== undefined && (
+          <span
+            className={`absolute top-2 right-2 text-[11px] px-2 py-[2px] rounded-full shadow 
+              ${cake.veg
+                ? "bg-green-600 text-white"
+                : "bg-red-600 text-white"}`}
+          >
+            {cake.veg ? "Veg" : "Non-Veg"}
+          </span>
+        )}
+
+        {/* Slider Arrows */}
         <button
           onClick={() =>
-            setImgIndex(imgIndex === 0 ? safeCake.images.length - 1 : imgIndex - 1)
+            setImgIndex(
+              imgIndex === 0 ? images.length - 1 : imgIndex - 1
+            )
           }
           className="absolute top-1/2 left-3 p-2 bg-white rounded-full shadow"
         >
@@ -95,7 +113,7 @@ Price: ₹${price}`;
         <button
           onClick={() =>
             setImgIndex(
-              imgIndex === safeCake.images.length - 1 ? 0 : imgIndex + 1
+              imgIndex === images.length - 1 ? 0 : imgIndex + 1
             )
           }
           className="absolute top-1/2 right-3 p-2 bg-white rounded-full shadow"
@@ -106,12 +124,47 @@ Price: ₹${price}`;
 
       {/* Details */}
       <div className="p-4 space-y-4">
-        <h2 className="text-xl font-bold">{safeCake.name}</h2>
-        <p className="text-gray-600">{safeCake.longDescription}</p>
+        <h2 className="text-xl font-bold">{name}</h2>
+        <p className="text-gray-600">{longDescription}</p>
+
+        {/* Price Section */}
+        <div className="flex items-center gap-3 mt-2">
+
+          {/* Cut Price */}
+          {originalPrice && (
+            <span className="text-gray-400 line-through text-sm">
+              ₹{originalPrice}
+            </span>
+          )}
+
+          {/* New Price */}
+          {newPrice && (
+            <span className="text-black font-bold text-lg">
+              ₹{newPrice}
+            </span>
+          )}
+
+          {/* Shiny Discount */}
+          {discount > 0 && (
+            <span className="text-[11px] font-semibold text-green-800 
+              px-2 py-[2px] rounded-l-md 
+              bg-gradient-to-r from-green-100 to-green-300
+              relative inline-block">
+
+              {discount}% OFF
+
+              <span className="absolute right-[-8px] top-0 h-full w-[8px] 
+                bg-gradient-to-r from-green-300 to-green-400 
+                skew-x-[20deg] rounded-r-md">
+              </span>
+            </span>
+          )}
+
+        </div>
 
         {/* Weight Options */}
-        <div className="flex gap-2 flex-wrap">
-          {safeCake.weightOptions.map((w, i) => (
+        <div className="flex gap-2 flex-wrap mt-2">
+          {weights.map((w, i) => (
             <button
               key={i}
               onClick={() => setSelectedWeight(i)}
@@ -121,23 +174,24 @@ Price: ₹${price}`;
                   : "border-gray-300"
               }`}
             >
-              {w} · ₹{safeCake.prices[i]}
+              {w} · ₹{prices[i]}
             </button>
           ))}
         </div>
 
-        <p className="text-pink-600 text-2xl font-bold">
-          ₹{safeCake.prices[selectedWeight]}
-        </p>
-
+        {/* WhatsApp Button */}
         <button
           onClick={orderNow}
-          className="w-full bg-green-600 text-white py-3 rounded-xl"
+          className="w-full bg-green-600 text-white py-3 rounded-xl mt-3"
         >
           Order on WhatsApp
         </button>
 
-        <RelatedCakes cakeId={safeCake._id} categories={safeCake.categories} />
+        {/* Related Cakes */}
+        <RelatedCakes
+          cakeId={cake._id}
+          categories={cake.categories}
+        />
       </div>
     </div>
   );

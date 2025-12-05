@@ -81,20 +81,85 @@ const SearchPage = () => {
 
       {/* Search Results */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-        {filtered.map((cake) => (
-          <div
-            key={cake._id}
-            onClick={() => navigate(`/cake/${cake._id}`)}
-            className="border p-2 rounded-lg bg-white cursor-pointer shadow active:scale-95 transition"
-          >
-            <img
-              src={cake.images?.[0]}
-              className="h-40 w-full object-cover rounded"
-            />
-            <p className="mt-1 font-medium">{cake.name}</p>
-            <p className="text-pink-600 font-bold">₹{cake.prices?.[0]}</p>
-          </div>
-        ))}
+        {filtered.map((cake) => {
+          const price = cake.prices?.[0] ?? null;
+          const cutPrice = cake.cutPrices?.[0] ?? null;
+
+          let discount = null;
+          if (cutPrice && price) {
+            discount = Math.round(((cutPrice - price) / cutPrice) * 100);
+          }
+
+          return (
+            <div
+              key={cake._id}
+              onClick={() => navigate(`/cake/${cake._id}`)}
+              className="bg-white rounded-xl shadow cursor-pointer active:scale-95 transition"
+            >
+              <div className="relative">
+                <img
+                  src={cake.images?.[0] || "/placeholder.jpg"}
+                  className="h-40 w-full object-cover rounded-t-xl"
+                />
+
+                {/* Veg / Non-Veg Tag */}
+                {cake.veg !== undefined && (
+                  <span
+                    className={`absolute top-2 right-2 text-[10px] px-2 py-[1px] rounded-full shadow 
+                    ${cake.veg ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}
+                  >
+                    {cake.veg ? "Veg" : "Non-Veg"}
+                  </span>
+                )}
+              </div>
+
+              <div className="p-2">
+
+                {/* Cake Name */}
+                {cake.name && (
+                  <p className="font-semibold text-sm leading-tight">
+                    {cake.name}
+                  </p>
+                )}
+
+                {/* Price + Discount */}
+                <div className="flex items-center gap-1 mt-1 flex-wrap">
+
+                  {/* Cut Price */}
+                  {cutPrice && (
+                    <span className="text-gray-400 line-through text-xs">
+                      ₹{cutPrice}
+                    </span>
+                  )}
+
+                  {/* New Price */}
+                  {price && (
+                    <span className="text-black font-bold text-sm">
+                      ₹{price}
+                    </span>
+                  )}
+
+                  {/* Shiny Discount */}
+                  {discount > 0 && (
+                    <span className="text-[9px] font-semibold text-green-800 
+                      px-1.5 py-[1px] rounded-l-md 
+                      bg-gradient-to-r from-green-100 to-green-300
+                      relative inline-block">
+
+                      {discount}% OFF
+
+                      <span className="absolute right-[-6px] top-0 h-full w-[6px] 
+                        bg-gradient-to-r from-green-300 to-green-400 
+                        skew-x-[20deg] rounded-r-md">
+                      </span>
+                    </span>
+                  )}
+
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {filtered.length === 0 && (

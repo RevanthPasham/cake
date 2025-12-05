@@ -34,17 +34,21 @@ const Slider = () => {
         <div
           key={cat._id}
           className="min-w-[150px] rounded-lg shadow cursor-pointer hover:shadow-xl active:scale-95 transition-all duration-200 flex-shrink-0"
-          onClick={() => navigate(`/category/${encodeURIComponent(cat.name)}`)}
+          onClick={() => cat.name && navigate(`/category/${encodeURIComponent(cat.name)}`)}
         >
           <img
             src={cat.image}
             alt={cat.name}
-            className="w-full h-40 rounded-t-xl object-cover" // Fixed: w-full instead of w-[95vw]
-            onError={(e) => {
-              e.target.src = '/placeholder.jpg'; // Add fallback
-            }}
+            className="w-full h-40 rounded-t-xl object-cover"
+            onError={(e) => (e.target.src = "/placeholder.jpg")}
           />
-          <p className="text-center mt-1 text-sm font-semibold p-2">{cat.name}</p>
+
+          {/* ⭐ Hide name if not present */}
+          {cat.name && (
+            <p className="text-center mt-1 text-sm font-semibold p-2">
+              {cat.name}
+            </p>
+          )}
         </div>
       ))}
     </div>

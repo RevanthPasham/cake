@@ -5,6 +5,7 @@ import CakeCard from "./components/CakeCard";
 import CakeDetail from "./components/CakeDetail";
 import CategoryPage from "./components/CategoryPage";
 import SearchPage from "./components/SearchPage";
+import Footer from "./components/Footer";
 import { useState } from "react";
 
 function App() {
@@ -29,6 +30,9 @@ function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/cake/:id" element={<CakeDetail />} />
       </Routes>
+
+      {/* Footer OUTSIDE the routes */}
+      <Footer />
     </Router>
   );
 }
