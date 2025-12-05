@@ -13,6 +13,12 @@ app.use(express.json());
 // Serve static files from public directory
 app.use(express.static('public'));
 
+// Explicit route for assets to ensure MIME types
+app.get('/assets/*', (req, res) => {
+  const filePath = __dirname + '/public' + req.path;
+  res.sendFile(filePath);
+});
+
 const mongoUrl = process.env.MONGO_URL;
 
 // Connect to MongoDB (Vercel compatible)
